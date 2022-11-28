@@ -1,0 +1,10 @@
+.DS_Store
+*.log
+/tmp
+/target
+/classes
+*.jar
+*.class
+/.nrepl-port
+/.cpcache
+/cljs-test-runner-out
