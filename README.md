@@ -1,6 +1,6 @@
 # multi-stage-queue
 
-Multi-Stage-Queue (MQS) is a multi-writer event log synchronizer modelled as a queue with multiple stages.
+Multi-Stage-Queue (MSQ) is a multi-writer event log synchronizer modelled as a queue with multiple stages.
 This is useful for event-based distributed system architectures that want to apply events optimistically while synchronizing them in the background.
 
 It gives you a way to reason about event synchronization, inspect the current synchronization state, and reactively perform synchronization actions that ensure each writer's events remain ordered.
@@ -10,7 +10,7 @@ It does not give you a way to represent any state besides the event logs being s
 
 ## The problem, and the approach
 
-MQS was created for [Athens](https://github.com/athensresearch/athens), and originally developed [inside the Athens repository](https://github.com/athensresearch/athens/tree/main/src/cljc/event_sync).
+MSQ was created for [Athens](https://github.com/athensresearch/athens), and originally developed [inside the Athens repository](https://github.com/athensresearch/athens/tree/main/src/cljc/event_sync).
 Athens works as client app where you can take notes structured as a graph, backed by an in-memory graph database.
 A lot of the rich functionality and responsiveness comes from having direct access to this in-memory database.
 
@@ -23,7 +23,7 @@ But effecting operations from clients in a responsive manner is not so straightf
 There's many tradeoffs around responsiveness, staleness of data, user flows, user expectations, and data integrity to be made in this space.
 It would be ideal if each client could largely operate as standalone.
 
-MQS aims to simplify such systems by modelling their state as a event log with a mutable tip.
+MSQ aims to simplify such systems by modelling their state as a event log with a mutable tip.
 There is a known set of events that will not change in order, but beyond that point there is an optimistic set of events that might change.
 A deterministic state can be obtained on each client by applying both set of events.
 By having a way to know when the order changed, the client can decide how to react to go back to a correct state.
@@ -31,7 +31,7 @@ By having a way to know when the order changed, the client can decide how to rea
 
 ## Model
 
-The core idea of MQS is that you can represent events across multiple synchronizing logs as if it was a single concatenated log.
+The core idea of MSQ is that you can represent events across multiple synchronizing logs as if it was a single concatenated log.
 
 The resulting log can have new events inserted in the middle of the log.
 This situation represents events from other writers that arrived at that log before existing events from the current writer.
@@ -51,10 +51,10 @@ The important terms in this document are:
 - Application state: state maintained by an application when interpreting events.
 - Subscription: an ordered stream of events from a log starting at a given order number.
 
-As a writer, you start by creating new MQS state atom with one stage for each of your logs, and setup subscriptions for each of your logs.
+As a writer, you start by creating new MSQ state atom with one stage for each of your logs, and setup subscriptions for each of your logs.
 
-Whenever your subscriptions show a new event was added to a log, you add it to the matching stage in the MQS state atom.
-The MQS API will determine if it's an insert or promote.
+Whenever your subscriptions show a new event was added to a log, you add it to the matching stage in the MSQ state atom.
+The MSQ API will determine if it's an insert or promote.
 
 Each time the atom changes you look at the last operation to decide what to do in your application:
 - promotions and insertions mean you need to save that event to the next stage
@@ -66,7 +66,7 @@ The event moved from one stage to the next, but its order on the log remains the
 
 ## Examples
 
-To get a feel for what synchronization with MQS looks like, let's look at a series of examples.
+To get a feel for what synchronization with MSQ looks like, let's look at a series of examples.
 
 In these examples we have three stages (in-memory, local storage and server) and two writers (Alice and Bob).
 Bob is not connected to the same local storage as Alice, but both are connected to the same server.
@@ -74,12 +74,12 @@ The examples happen one after the other, but you can read them separately.
 
 This is a common set of stages for an offline-first browser application, but you can imagine different sets of stages.
 An application without any offline capabilities would only have an in-memory and server stages.
-You can also have an application that only synchronizes between two servers, or even chain multiple applications using the MQS model.
+You can also have an application that only synchronizes between two servers, or even chain multiple applications using the MSQ model.
 
 
 ### Describing states
 
-We can talk about MQS by representing the sequence of states each writer has.
+We can talk about MSQ by representing the sequence of states each writer has.
 Each state looks like this:
 
 ```
@@ -249,7 +249,7 @@ Here's a couple of options:
 - decide that it's ok to resolve  `b1` on top of the previous `a2 a1` instead of following the real order.
 - defer this decision until later in order to reduce the number of computations being done right now.
 
-Whatever Alice decides to do with the application state will not affect the MQS state.
+Whatever Alice decides to do with the application state will not affect the MSQ state.
 It will continue to sync `a2` to the server:
 
 ```
@@ -476,9 +476,9 @@ Alice, Bob, and Elsa are all synced to the same log.
 
 ## Requirements
 
-To use MQS you need ensure:
+To use MSQ you need ensure:
 - create Event IDs, e.g. a UUID generator or equivalent.
-- idempotency of event saves to a stage's log, because multiple MQS writers can be writing the same event.
+- idempotency of event saves to a stage's log, because multiple MSQ writers can be writing the same event.
 - monotonically increasing ordering of events within a stage's log.
 - subscription capability over a stage's log.
 
@@ -486,7 +486,7 @@ While not a strict necessity, the order number within a stage's log events is ve
 
 Additionally, for offline-first applications, you also need to ensure a local cache for each non-local log.
 This cache will need to store the all events in that stage that are not known to have been removed, and be able to retrieve on subscription.
-Without it you will not be able restart the application and get back to the same MQS state.
+Without it you will not be able restart the application and get back to the same MSQ state.
 
 You can use extra stages to sync to these caches.
 In the example above, you could cache the server events by adding `Stage 4 - Server local cache`.
@@ -495,9 +495,9 @@ This would give you the same sync semantics as before.
 
 ## FAQ
 
-### How can I detect if MQS is losing events?
+### How can I detect if MSQ is losing events?
 
-MQS guarantees that each event from a given writer remain ordered on each stage.
+MSQ guarantees that each event from a given writer remain ordered on each stage.
 You can keep track of the last event by the writer on the application, and pass the id of previous event on each event.
 This allows you to query any log to see if the previous log is there as well.
 
@@ -510,7 +510,7 @@ maybe error on promoting non-tip?
 
 ### How can I handle conflicts?
 
-TODO: only semantic events, not at MQS level
+TODO: only semantic events, not at MSQ level
 
 
 ### Should I subscribe to all events for each stage on startup?
@@ -548,7 +548,7 @@ TODO: watch atom, check last op, make own save fns that ensure idempotency
 
 TODO: hard, considerations below
 
-stop syncing, make a new MQS without that stage, start listening to the stages again?
+stop syncing, make a new MSQ without that stage, start listening to the stages again?
 -no, this loses the events in that stage, can't read them... need some kind of cache in local if we never want to lose them
 -same problem as restart and stage is gone
 -even for the purpose of own events sync, you will lose events like this... maybe keep recording of which hit the last stage?
@@ -583,7 +583,7 @@ TODO: log should not show repeats anyway
 TODO: API denied save in a non-recoverable manner, tricky case
 
 
-### Synchronization is hard, how is MQS tested for robustness?
+### Synchronization is hard, how is MSQ tested for robustness?
 
 TODO: generative tests, previous event tracking
 
@@ -599,5 +599,5 @@ intermediate stage subs needs to start at the first event that's not on subseque
 ### Can I batch event saving and subscriptions?
 
 The specific semantics of how events are saved and retrieved are up to your code.
-You can batch operations as long as you end up calling the MQS API.
+You can batch operations as long as you end up calling the MSQ API.
 
