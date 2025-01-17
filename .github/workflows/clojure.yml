@@ -20,6 +20,6 @@ jobs:
         cli: 1.11.1.1200
     - uses: actions/setup-node@v3
     - name: test-clj
-      run: clojure -M:test-clj
+      run: clojure -M:dev:test-clj
     - name: test-cljs
-      run: clojure -M:test-cljs
+      run: clojure -M:dev:test-cljs

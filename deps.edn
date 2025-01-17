@@ -2,9 +2,9 @@
  :deps    {org.clojure/clojure       {:mvn/version "1.12.0"}
            org.clojure/clojurescript {:mvn/version "1.11.132"}
            org.flatland/ordered      {:mvn/version "1.15.12"}}
- :aliases {:test-clj  {:extra-paths ["test"]
-                       :extra-deps  {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
-                       :main-opts   ["-m" "cognitect.test-runner"]}
-           :test-cljs {:extra-paths ["test"]
-                       :extra-deps {olical/cljs-test-runner {:mvn/version "3.8.0"}}
+ :aliases {:dev       {:extra-paths ["test"]
+                       :extra-deps  {io.github.clojure/core.async {:git/sha "313569a932dffd6c683438909926a719d80a5d04"}}}
+           :test-clj  {:extra-deps {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+                       :main-opts  ["-m" "cognitect.test-runner"]}
+           :test-cljs {:extra-deps {olical/cljs-test-runner {:mvn/version "3.8.0"}}
                        :main-opts  ["-m" "cljs-test-runner.main"]}}}

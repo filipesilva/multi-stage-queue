@@ -117,16 +117,20 @@
   [state]
   (vec (mapcat (comp (partial stage-log state) first) (:stages state))))
 
+(defn to-data
+  "Returns a state as plain data structures, with added log.
+   Events are shown newest to oldest for readability."
+  [state]
+  (reduce (fn [state k]
+            (update-in state [:stages k] (comp vec rseq)))
+          (assoc state :log (log state))
+          (-> state :stages keys)))
 
 (defn print
   "Pretty prints a state, with added log.
    Events are shown newest to oldest for readability."
   [state]
-  (pprint/pprint
-    (reduce (fn [state k]
-              (update-in state [:stages k] (comp vec rseq)))
-            (assoc state :log (log state))
-            (-> state :stages keys))))
+  (pprint/pprint (to-data state)))
 
 
 ;; Mutable API
